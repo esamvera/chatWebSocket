@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>chat WebSocket</title>
+	<link rel="icon" href="images/chat-icon.png" type="image/x-icon"/>
+	<!--<link rel="stylesheet" href="styles.css">-->
+</head>
+<body>
+	<h1>Welcome to the chat<h1>
+
+	<h4>First choose your unique nickname max 30 characters</h4>
+	<h6>Your nickname should not match other nicknames in the chat</h6>
+	<form id="formNick" class="formNick" name="formNick" autocomplete="off">
+		<input type="text" id="nick" name="nick" maxlength="30" size="30" placeholder="Enter your a nickname"/>
+		<input type="submit" id="sendNick" name="sendNick" value="Register"/>
+	</form>
+	
+	<div id="allClientsOnLine" class="allClientsOnLine">
+		<h2>All users on the chat</h2>
+		<div id="allNicks" class="allNicks"></div>
+	</div>
+	
+	<div id="allClientsOnLinePrivate" class="allClientsOnLinePrivate">
+		<h2>All users on the chatPrivate</h2>
+		<h4>Select one or several users to chat with</h4>
+		<div id="allNicksPrivate" class="allNicksPrivate"></div>
+		<button type="button" id="inviteStartPrivate" class="inviteStartPrivate">Invite and start</button>
+	</div>
+	
+	<h4>Enter your message max 500 characters</h4>
+	<h5>Select one or more users with whom you want to chat</h5>
+	<form id="formMessage" class="formMessage" name="formMessage" autocomplete="off">
+		<textarea id="message" name="message" maxlength="30" size="30" placeholder="Enter your a message" cols="50" rows="10"></textarea> 
+		<input type="submit" id="sendMessage" name="sendMessage" value="Send message"/>
+	</form>
+	
+	<h4>Private chat</h4>
+	<form id="formMessagePrivate" class="formMessagePrivate" name="formMessagePrivate" autocomplete="off">
+		<textarea id="messagePrivate" name="messagePrivate" maxlength="30" size="30" placeholder="Enter your a message" cols="50" rows="10"></textarea> 
+		<input type="submit" id="sendMessagePrivate" name="sendMessagePrivate" value="Send message"/>
+	</form>
+	
+	
+	<div id="listOfMessages" class="listOfMessages">	
+	</div>
+	
+	<div id="listOfMessagesPrivate" class="listOfMessagesPrivate">	
+	</div>
+	
+	<div id="unoriginalNick" class="unoriginalNick">
+	</div>
+	
+	<div id="inviteToPrivate" class="inviteToPrivate">gggggggg
+	</div>
+	
+	<script>	
+			// установление соединения WebSocket
+		const connection = new WebSocket("ws://localhost:9000");
+		
+		const allClientsOnLine = document.getElementById("allClientsOnLine");
+		
+		const allClientsOnLinePrivate = document.getElementById("allClientsOnLinePrivate");
+		
+		const message = document.getElementById("message");
+		const sendMessage = document.getElementById("sendMessage");		
+		
+		const messagePrivate = document.getElementById("messagePrivate");
+		const sendMessagePrivate = document.getElementById("sendMessagePrivate");
+		
+		const listOfMessages = document.getElementById("listOfMessages");
+		const listOfMessagesPrivate = document.getElementById("listOfMessagesPrivate");
+		
+		const nick = document.getElementById("nick");
+		const sendNick = document.getElementById("sendNick");		
+		
+		const inviteStartPrivate = document.getElementById("inviteStartPrivate");
+		
+		const allNicks = document.getElementById("allNicks");
+		const allNicksPrivate = document.getElementById("allNicksPrivate");		
+		
+		const inviteToPrivate = document.getElementById("inviteToPrivate");
+		
+		const unoriginalNick = document.getElementById("unoriginalNick");
+		
+		// флаг регистрации ника
+		let flagNick = 0;
+		
+		// переменная для сохранения своего ника
+		let selfNick = "";
+		
+		//сделать в конце регистрацию ника с помощью куки иди сессий !!!!!!!!!!!!!!!!!!!
+		
+		
+		connection.onopen = (event) => {
+			console.log("Connection opened");
+			
+			let giveAllNicks = ["giveAllNicks"];
+			connection.send(JSON.stringify(giveAllNicks));
+					
+			const greeting = ["Hello everyone in the chat"];			
+			
+			
+			sendNick.addEventListener("click", (e) => {
+				e.preventDefault(); //для предотвращения перезагрузки страницы и закрытия соединения при отправке данных формы
+				let nickToServer = ["nick"];
+				if(nick.value !== ""){
+					nickToServer.push(nick.value);
+					connection.send(JSON.stringify(nickToServer));
+					
+					// let messageToServer = ["message"];	
+					// messageToServer.push(greeting);
+					// messageToServer.push(nick.value);
+					// connection.send(JSON.stringify(messageToServer));
+					flagNick = 1;
+					selfNick = nick.value;
+					//alert(selfNick + ": selfNick");
+				}
+				else{
+					alert("Enter your Nickname");
+				}				
+			});
+			
+			sendMessage.addEventListener("click", (e) => {
+				e.preventDefault(); //для предотвращения перезагрузки страницы и закрытия соединения при отправке данных формы
+				let messageToServer = ["message"];	
+				if(message.value !== ""){
+					if(flagNick == 0){
+						alert("Register your Nickname");
+					}
+					else{
+						messageToServer.push(message.value);
+						messageToServer.push(nick.value);
+						connection.send(JSON.stringify(messageToServer));
+					}
+					
+				}
+				else{
+					alert("Enter your Message");
+				}	
+			});
+			
+			
+			
+			inviteStartPrivate.addEventListener("click", (e) => {
+				let invited = [];
+				
+				allNicksPrivateInput = document.getElementsByClassName("allNicksPrivateInput");				
+				for(oneInput of allNicksPrivateInput){
+					if(oneInput.checked){
+						invited.push(oneInput.name);						
+					}
+				}
+				
+				let invite = [];
+				invite[0] = "invitePrivate";	// flag about type of message			
+				invite[1] = selfNick;		// inviting user
+				invite[2] = invited;		//invited users
+				
+				connection.send(JSON.stringify(invite));
+			});
+			
+			
+			
+			sendMessagePrivate.addEventListener("click", (e) => {
+				e.preventDefault(); //для предотвращения перезагрузки страницы и закрытия соединения при отправке данных формы
+				let messageToServer = ["message"];	
+				if(message.value !== ""){
+					if(flagNick == 0){
+						alert("Register your Nickname");
+					}
+					else{
+						messageToServer.push(message.value);
+						messageToServer.push(nick.value);
+						connection.send(JSON.stringify(messageToServer));
+					}
+					
+				}
+				else{
+					alert("Enter your Message");
+				}	
+			});
+			
+			
+			// обработка возобновления видимости вкладки браузера Page Visibility API
+			document.addEventListener("visibilitychange", function () {
+				if (document.hidden) {
+					// страница скрыта 
+				} else {
+					// страница видима
+					let visibilitychange = ["visibilitychange"];  // 1 элемент массива - флаг типа сообщения
+					visibilitychange.push(selfNick);	// 2 элемент массива - ник в чате
+					connection.send(JSON.stringify(visibilitychange));
+				}
+			});
+			
+			
+			// обработка закрытия вкладки браузера - удаление ника уходящего пользователя из списка ников на сервере
+			window.onbeforeunload = function(e) {
+				const conClose = ['connectionClose', selfNick];
+				connection.send(JSON.stringify(conClose));
+				return;
+			};
+			
+		};
+		
+		
+		
+		
+		
+		connection.onerror = (error) => {
+			console.log(`WebSocket Error: ${error}`);
+		}
+		
+		
+		
+		
+		
+		
+		connection.onclose = (event) => {
+			console.log("Connection closed");				
+		}
+		
+		
+		
+		
+		
+		
+		connection.onmessage = (event) => {
+			const spisokMessages = JSON.parse(event.data);
+			console.log(spisokMessages);
+			
+			if(spisokMessages[0] == "warning"){
+				//очищаем блок со всеми сообщениями
+				listOfMessages.innerHTML = "";
+				unoriginalNick.innerHTML = "";				
+				unoriginalNick.innerHTML = `${spisokMessages[1]}. Please select a new unique one`;
+				flagNick = 0;
+				selfNick = "";
+				// alert(selfNick + ": selfNick!!!");
+			}
+			
+			
+			else if(spisokMessages[0] == "inviteForPrivate"){
+				let invited = spisokMessages[2];
+				//inviteToPrivate.innerHTML = `shgfjhgjukillkjlk`;
+				for(let invitedUser of invited){
+					alert(invitedUser + ": invitedUser");
+					if(invitedUser == selfNick){
+						inviteToPrivate.innerHTML = `shgfjhgjukillkjlk`;
+					}	
+				}				
+			}
+			
+			//visibilitychange
+			else if(spisokMessages[0] == "visibilitychange"){
+				if(spisokMessages[1] == selfNick){
+					
+						// обновляем список ников на чате
+					let htmlAllNicks = "";
+					let htmlAllNicksPrivate = "";					
+					let spisokNicks = spisokMessages[2];
+					
+					for(let i = 0; i < spisokNicks.length; i++){
+						if(spisokNicks[i] == selfNick){
+							htmlAllNicks +=`<div style="font-weight:bold; color:red;">${spisokNicks[i]}</div><br/>`;
+							// стилизовать шрифты при создании кастомного чекбокса
+							htmlAllNicksPrivate +=`<input type="checkbox" id="${spisokNicks[i]}" style="font-weight:bold;" class="allNicksPrivateInput" name="${spisokNicks[i]}"/>${spisokNicks[i]}<br/>`;
+						}
+						else{
+							htmlAllNicks +=`<div>${spisokNicks[i]}</div><br/>`;
+							htmlAllNicksPrivate +=`<input type="checkbox" id="${spisokNicks[i]}" class="allNicksPrivateInput" name="${spisokNicks[i]}"/>${spisokNicks[i]}<br/>`;
+						}									
+					}			
+					allNicks.innerHTML = htmlAllNicks;
+					allNicksPrivate.innerHTML = htmlAllNicksPrivate;
+					alert("Список ников обновлен после возобновления страницы");
+					
+						// обновляем список сообщений на чате
+					//динамически создаем элементы разметки для размещения списка сообщений, разделенные брейком								
+					let htmlSpisokMessages = "";
+					let spisokSoobscheniy = spisokMessages[3];
+					
+					for(let i = 0; i < spisokSoobscheniy.length; i++){
+						if(i == 0 || i%2 == 0){
+							htmlSpisokMessages +=`<div style="font-weight:bold;">${spisokSoobscheniy[i]}</div>`;
+						}
+						else{
+							htmlSpisokMessages +=`<div>${spisokSoobscheniy[i]}</div><br/>`;
+						}					
+					}				
+					//очищаем блок со всеми сообщениями
+					listOfMessages.innerHTML = "";
+					unoriginalNick.innerHTML = "";					
+					// загружаем блок со всеми сообщениями полученным списком сообщений в виде разметки html
+					listOfMessages.innerHTML = htmlSpisokMessages;
+					alert("Список сообщений обновлен после возобновления страницы");
+				}
+				else{			
+				}				
+			}
+			
+			
+			else if(spisokMessages[0] == "allClientsToClient"){
+				let htmlAllNicks = "";
+				let htmlAllNicksPrivate = "";
+				for(let i = 0; i < spisokMessages.length; i++){
+					if(i == 0){
+						continue;
+					}
+					else{
+						if(spisokMessages[i] == selfNick){
+							htmlAllNicks +=`<div style="font-weight:bold; color:red;">${spisokMessages[i]}</div><br/>`;
+							// стилизовать шрифты при создании кастомного чекбокса
+							htmlAllNicksPrivate +=`<input type="checkbox" id="${spisokMessages[i]}" style="font-weight:bold;" class="allNicksPrivateInput" name="${spisokMessages[i]}"/>${spisokMessages[i]}<br/>`;
+						}
+						else{							
+							htmlAllNicks +=`<div>${spisokMessages[i]}</div><br/>`;
+							htmlAllNicksPrivate +=`<input type="checkbox" id="${spisokMessages[i]}" class="allNicksPrivateInput" name="${spisokMessages[i]}"/>${spisokMessages[i]}<br/>`;
+						}						
+					}					
+				}			
+				allNicks.innerHTML = htmlAllNicks;
+				allNicksPrivate.innerHTML = htmlAllNicksPrivate;
+			}
+			
+			
+			else if(spisokMessages[0] == "connectionClose"){
+						// обновляем список ников на чате
+					let htmlAllNicks = "";
+					let htmlAllNicksPrivate = "";					
+					let spisokNicks = spisokMessages[1];
+					
+					for(let i = 0; i < spisokNicks.length; i++){
+						if(spisokNicks[i] == selfNick){
+							htmlAllNicks +=`<div style="font-weight:bold; color:red;">${spisokNicks[i]}</div><br/>`;
+							// стилизовать шрифты при создании кастомного чекбокса
+							htmlAllNicksPrivate +=`<input type="checkbox" id="${spisokNicks[i]}" style="font-weight:bold;" class="allNicksPrivateInput" name="${spisokNicks[i]}"/>${spisokNicks[i]}<br/>`;
+						}
+						else{
+							htmlAllNicks +=`<div>${spisokNicks[i]}</div><br/>`;
+							htmlAllNicksPrivate +=`<input type="checkbox" id="${spisokNicks[i]}" class="allNicksPrivateInput" name="${spisokNicks[i]}"/>${spisokNicks[i]}<br/>`;
+						}									
+					}			
+					allNicks.innerHTML = htmlAllNicks;
+					allNicksPrivate.innerHTML = htmlAllNicksPrivate;
+					alert("Список ников обновлен после ухода юзера из чата");
+			}
+			
+			
+			else{
+				//динамически создаем элементы разметки для размещения списка сообщений, разделенные брейком
+				
+				/*
+				const htmlSpisokMessages = spisokMessages.map(singleMessage => {
+					return `<div>${singleMessage}</div>`;
+				}).join('<br/>');			
+				*/
+				
+				let htmlSpisokMessages = "";
+				for(let i = 0; i < spisokMessages.length; i++){
+					if(i == 0 || i%2 == 0){
+						htmlSpisokMessages +=`<div style="font-weight:bold;">${spisokMessages[i]}</div>`;
+					}
+					else{
+						htmlSpisokMessages +=`<div>${spisokMessages[i]}</div><br/>`;
+					}					
+				}				
+				//очищаем блок со всеми сообщениями
+				listOfMessages.innerHTML = "";
+				unoriginalNick.innerHTML = "";	
+				
+				// загружаем блок со всеми сообщениями полученным списком сообщений в виде разметки html
+				listOfMessages.innerHTML = htmlSpisokMessages;
+			}			
+		}
+		
+		
+		
+		
+		
+		
+		
+	</script>
+</body>
+</html>
