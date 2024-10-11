@@ -1,6 +1,6 @@
 
 	const WebSoket = require("ws");
-	const server = new WebSoket.Server({port: 9000});
+	const server = new WebSoket.Server({port: process.env.PORT || 9000});
 	
 	server.on("connection", onConnect);
 	
